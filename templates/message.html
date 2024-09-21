@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room: {{ room_name }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'chat/styles.css' %}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #e5ddd5;
+        }
+
+        .chat-container {
+            width: 400px; /* Adjust as needed */
+            margin: 50px auto;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .messages-list {
+            list-style-type: none;
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+            max-height: 400px; /* Adjust height as needed */
+        }
+
+        .message {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        .sent {
+            justify-content: flex-end;
+        }
+
+        .received {
+            justify-content: flex-start;
+        }
+
+        .message-sender {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .message-content {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 70%;
+            word-wrap: break-word; /* Wrap long messages */
+        }
+
+        .sent .message-content {
+            background-color: #dcf8c6;
+        }
+
+        .received .message-content {
+            background-color: #f1f1f1;
+        }
+
+        .message-form {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+        }
+
+        #message-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            margin-left: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Chat Room: {{ room_name }}</h2>
+        </div>
+        <ul id="messages" class="messages-list">
+            {% for message in messages %}
+                <li class="message {% if message.sender == user %}sent{% else %}received{% endif %}">
+                    <span class="message-sender">{{ message.sender.username }}</span>
+                    <span class="message-content">{{ message.message }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+        <form id="message-form" class="message-form">
+            <input id="message-input" autocomplete="off" placeholder="Type a message..." required />
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const roomName = "{{ room_name }}";
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/room/' + roomName + '/'
+        );
+
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            document.querySelector('#messages').innerHTML += `<li class="message received"><span class="message-sender">${data.sender}:</span> <span class="message-content">${data.message}</span></li>`;
+            // Scroll to the bottom of the messages list
+            const messagesList = document.querySelector('#messages');
+            messagesList.scrollTop = messagesList.scrollHeight;
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#message-form').onsubmit = function(e) {
+            e.preventDefault();
+            const messageInputDom = document.querySelector('#message-input');
+            const message = messageInputDom.value;
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInputDom.value = '';
+            // Scroll to the bottom after sending a message
+            const messagesList = document.querySelector('#messages');
+            messagesList.scrollTop = messagesList.scrollHeight;
+        };
+    </script>
+</body>
+</html>

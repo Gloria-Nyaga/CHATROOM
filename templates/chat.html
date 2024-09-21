@@ -1,0 +1,41 @@
+<!-- chat.html -->
+<h2>Chat Room: {{ room_name }}</h2>
+<ul id="messages"></ul>
+
+<form id="message-form">
+    <input id="message-input" autocomplete="off" placeholder="Type a message..." />
+    <button type="submit">Send</button>
+</form>
+
+<script>
+    const roomName = "{{ room_name }}";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/room/' + roomName + '/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        onsole.log('Message received:', data);
+        document.querySelector('#messages').innerHTML += `<li class="message received"><span class="message-sender">${data.sender}:</span> <span class="message-content">${data.message}</span></li>`;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    chatSocket.onopen = function(e) {
+    console.log('WebSocket connection established');
+    };
+
+    document.querySelector('#message-form').onsubmit = function(e) {
+        e.preventDefault();
+        const messageInputDom = document.querySelector('#message-input');
+        const message = messageInputDom.value;
+        const sender = "{{ user }}";
+
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+        messageInputDom.value = '';
+    };
+</script>
